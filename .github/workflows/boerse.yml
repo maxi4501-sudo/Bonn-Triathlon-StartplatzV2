@@ -1,0 +1,40 @@
+Boerse · YML
+name: Startplatzboerse pruefen
+ 
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # alle 10 Minuten (GitHub kann das etwas verzögern)
+  workflow_dispatch:          # manueller Start per Button
+ 
+permissions:
+  contents: write
+ 
+concurrency:
+  group: boerse
+  cancel-in-progress: false
+ 
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+ 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+ 
+      - name: Abhängigkeiten installieren
+        run: pip install requests beautifulsoup4
+ 
+      - name: Börse prüfen
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python check_boerse.py
+ 
+      - name: Zustand speichern
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add state.json
+          git diff --cached --quiet || (git commit -m "Zustand aktualisiert" && git push)
+ 
